@@ -8,6 +8,8 @@ servers:
   - url: https://api.travel-social.example.com/v1
 
 tags:
+  - name: Photos
+    description: Загрузка и удаление фотографий для сущностей
   - name: Posts
     description: Посты путешественников
   - name: Post reactions
@@ -20,15 +22,16 @@ tags:
     description: Ленты в обратном хронологическом порядке
   - name: Excursions
     description: Каталог экскурсий, рейтинг, комментарии и покупка
-  - name: Payments
-    description: Интеграция с платежными системами для покупки экскурсий
 
 paths:
-  /posts/photos:
+  /photos/{type}:
     post:
       tags:
-        - Posts
-      summary: Загрузить фотографии для поста
+        - Photos
+      summary: Загрузить фотографию
+      description: Загружает фотографию для указанного типа сущности. Например, posts или excursions.
+      parameters:
+        - $ref: '#/components/parameters/PhotoType'
       requestBody:
         required: true
         content:
@@ -59,12 +62,13 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /posts/photos/{photoId}:
+  /photos/{type}/{photoId}:
     delete:
       tags:
-        - Posts
-      summary: Удалить фотографию для поста
+        - Photos
+      summary: Удалить фотографию
       parameters:
+        - $ref: '#/components/parameters/PhotoType'
         - $ref: '#/components/parameters/PhotoId'
       responses:
         '204':
@@ -75,6 +79,38 @@ paths:
           $ref: '#/components/responses/InternalServerError'
 
   /posts:
+    get:
+      tags:
+        - Posts
+      summary: Получить посты
+      description: Возвращает посты в обратном хронологическом порядке с возможностью фильтрации по месту.
+      parameters:
+        - name: placeId
+          in: query
+          required: false
+          description: Фильтр по месту путешествия.
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Посты в обратном хронологическом порядке
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/CursorPage'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Post'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
     post:
       tags:
         - Posts
@@ -153,22 +189,6 @@ paths:
       responses:
         '204':
           description: Пост удален
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /posts/{postId}/photos/{photoId}:
-    delete:
-      tags:
-        - Posts
-      summary: Удалить фотографию из поста
-      parameters:
-        - $ref: '#/components/parameters/PostId'
-        - $ref: '#/components/parameters/PhotoId'
-      responses:
-        '204':
-          description: Фотография удалена из поста
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -327,7 +347,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /places/popular:
+  /places:
     get:
       tags:
         - Places
@@ -360,88 +380,33 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /places/{placeId}/posts:
-    get:
-      tags:
-        - Places
-      summary: Посмотреть посты из конкретного места
-      parameters:
-        - $ref: '#/components/parameters/PlaceId'
-        - $ref: '#/components/parameters/Limit'
-        - $ref: '#/components/parameters/Cursor'
-      responses:
-        '200':
-          description: Посты по месту в обратном хронологическом порядке
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/CursorPage'
-                  - type: object
-                    properties:
-                      items:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/Post'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
   /travelers/{travelerId}/feed:
     get:
       tags:
         - Feeds
-      summary: Посмотреть ленту путешественника
-      description: Возвращает посты конкретного путешественника в обратном хронологическом порядке.
+      summary: Посмотреть ленту
+      description: Возвращает посты путешественника или посты по его подпискам в обратном хронологическом порядке.
       parameters:
         - name: travelerId
           in: path
           required: true
           schema:
             type: integer
-        - $ref: '#/components/parameters/Limit'
-        - $ref: '#/components/parameters/Cursor'
-      responses:
-        '200':
-          description: Лента путешественника
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/CursorPage'
-                  - type: object
-                    properties:
-                      items:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/Post'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /travelers/{travelerId}/subscriptions-feed:
-    get:
-      tags:
-        - Feeds
-      summary: Посмотреть ленту пользователя по подпискам
-      description: Возвращает посты путешественников, на которых подписан пользователь, в обратном хронологическом порядке.
-      parameters:
-        - name: travelerId
-          in: path
-          required: true
+        - name: feedType
+          in: query
+          required: false
+          description: Тип ленты.
           schema:
-            type: integer
+            type: string
+            enum:
+              - traveler
+              - subscriptions
+            default: traveler
         - $ref: '#/components/parameters/Limit'
         - $ref: '#/components/parameters/Cursor'
       responses:
         '200':
-          description: Лента по подпискам
+          description: Лента в обратном хронологическом порядке
           content:
             application/json:
               schema:
@@ -464,8 +429,14 @@ paths:
     get:
       tags:
         - Excursions
-      summary: Посмотреть каталог экскурсий по направлениям
+      summary: Найти экскурсии и посмотреть каталог по направлениям
       parameters:
+        - name: query
+          in: query
+          required: false
+          description: Строка поиска по названию или описанию экскурсии.
+          schema:
+            type: string
         - name: placeId
           in: query
           required: false
@@ -514,91 +485,6 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '422':
           $ref: '#/components/responses/ValidationError'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /excursions/search:
-    get:
-      tags:
-        - Excursions
-      summary: Найти экскурсии
-      parameters:
-        - name: query
-          in: query
-          required: true
-          description: Строка поиска по названию или описанию экскурсии.
-          schema:
-            type: string
-        - name: placeId
-          in: query
-          required: false
-          description: Фильтр по направлению или месту.
-          schema:
-            type: integer
-        - $ref: '#/components/parameters/Limit'
-        - $ref: '#/components/parameters/Cursor'
-      responses:
-        '200':
-          description: Найденные экскурсии
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/CursorPage'
-                  - type: object
-                    properties:
-                      items:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/Excursion'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /excursions/photos:
-    post:
-      tags:
-        - Excursions
-      summary: Загрузить фотографию для экскурсии
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required:
-                - photo
-              properties:
-                photo:
-                  type: string
-                  format: binary
-      responses:
-        '200':
-          description: Фотография загружена
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Photo'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /excursions/photos/{photoId}:
-    delete:
-      tags:
-        - Excursions
-      summary: Удалить фотографию для экскурсии
-      parameters:
-        - $ref: '#/components/parameters/PhotoId'
-      responses:
-        '204':
-          description: Фотография удалена
-        '404':
-          $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -654,22 +540,6 @@ paths:
       responses:
         '204':
           description: Экскурсия удалена
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /excursions/{excursionId}/photos/{photoId}:
-    delete:
-      tags:
-        - Excursions
-      summary: Удалить фотографию из экскурсии
-      parameters:
-        - $ref: '#/components/parameters/ExcursionId'
-        - $ref: '#/components/parameters/PhotoId'
-      responses:
-        '204':
-          description: Фотография удалена из экскурсии
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -789,124 +659,6 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /excursions/{excursionId}/purchases:
-    post:
-      tags:
-        - Excursions
-      summary: Купить экскурсию
-      description: Создает покупку экскурсии и платеж для оплаты через платежную систему.
-      parameters:
-        - $ref: '#/components/parameters/ExcursionId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - userId
-                - paymentProvider
-              properties:
-                userId:
-                  type: integer
-                  example: 1001
-                paymentProvider:
-                  type: string
-                  example: card
-      responses:
-        '201':
-          description: Покупка создана
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Purchase'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /payments:
-    post:
-      tags:
-        - Payments
-      summary: Создать платеж
-      description: Создает платеж для уже созданной покупки экскурсии.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreatePaymentRequest'
-      responses:
-        '201':
-          description: Платеж создан
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Payment'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /payments/{paymentId}:
-    get:
-      tags:
-        - Payments
-      summary: Получить статус платежа
-      parameters:
-        - $ref: '#/components/parameters/PaymentId'
-      responses:
-        '200':
-          description: Статус платежа
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Payment'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /payments/callback:
-    post:
-      tags:
-        - Payments
-      summary: Принять callback от платежной системы
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - paymentId
-                - status
-              properties:
-                paymentId:
-                  type: integer
-                  example: 9001
-                status:
-                  $ref: '#/components/schemas/PaymentStatus'
-                providerTransactionId:
-                  type: string
-                  example: ps_2Yotn8bP
-      responses:
-        '204':
-          description: Callback обработан
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
 components:
   parameters:
     PostId:
@@ -927,6 +679,17 @@ components:
       required: true
       schema:
         type: integer
+    PhotoType:
+      name: type
+      in: path
+      required: true
+      description: Тип сущности, для которой загружается фотография.
+      schema:
+        type: string
+        enum:
+          - posts
+          - excursions
+          - comments
     PhotoId:
       name: photoId
       in: path
@@ -941,12 +704,6 @@ components:
         type: integer
     ExcursionId:
       name: excursionId
-      in: path
-      required: true
-      schema:
-        type: integer
-    PaymentId:
-      name: paymentId
       in: path
       required: true
       schema:
@@ -1127,7 +884,7 @@ components:
         url:
           type: string
           format: uri
-          example: https://cdn.travel-social.example.com/posts/3001/photo-1.jpg
+          example: https://cdn.travel-social.example.com/photos/7001.jpg
 
     PostComment:
       type: object
@@ -1361,86 +1118,6 @@ components:
         createdAt:
           type: string
           format: date-time
-
-    CreatePaymentRequest:
-      type: object
-      required:
-        - purchaseId
-        - paymentProvider
-      properties:
-        purchaseId:
-          type: integer
-          example: 6001
-        paymentProvider:
-          type: string
-          example: card
-
-    Purchase:
-      type: object
-      required:
-        - id
-        - excursionId
-        - userId
-        - payment
-        - createdAt
-      properties:
-        id:
-          type: integer
-          example: 6001
-        excursionId:
-          type: integer
-          example: 8001
-        userId:
-          type: integer
-          example: 1001
-        payment:
-          $ref: '#/components/schemas/Payment'
-        createdAt:
-          type: string
-          format: date-time
-
-    Payment:
-      type: object
-      required:
-        - id
-        - purchaseId
-        - status
-        - amount
-        - currency
-        - paymentUrl
-        - createdAt
-      properties:
-        id:
-          type: integer
-          example: 9001
-        purchaseId:
-          type: integer
-          example: 6001
-        status:
-          $ref: '#/components/schemas/PaymentStatus'
-        amount:
-          type: number
-          format: double
-          minimum: 0
-          example: 75.00
-        currency:
-          type: string
-          example: USD
-        paymentUrl:
-          type: string
-          format: uri
-          example: https://payments.example.com/pay/ps_2Yotn8bP
-        createdAt:
-          type: string
-          format: date-time
-
-    PaymentStatus:
-      type: string
-      enum:
-        - pending
-        - paid
-        - failed
-        - canceled
 
     ModerationStatus:
       type: string
