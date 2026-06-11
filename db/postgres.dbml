@@ -1,0 +1,142 @@
+Project postgres {
+  database_type: 'PostgreSQL'
+  Note: 'Используется как модель для записи'
+}
+
+Enum moderation_status {
+  moderation
+  published
+  rejected
+}
+
+Enum photo_type {
+  posts
+  excursions
+  comments
+}
+
+Enum comment_target_type {
+  posts
+  excursions
+}
+
+Table travelers {
+  id bigint [pk]
+  display_name varchar(128) [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table places {
+  id bigint [pk]
+  name varchar(64) [not null]
+  country varchar(64) [not null]
+  description varchar(256) [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table posts {
+  id bigint [pk]
+  author_id bigint [not null]
+  place_id bigint [not null]
+  title varchar(64)
+  description varchar(256) [not null]
+  status moderation_status [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  deleted_at timestamp
+
+  indexes {
+    author_id [name: 'idx_posts_author_id', type: btree]
+    place_id [name: 'idx_posts_place_id', type: btree]
+  }
+}
+
+Table photos {
+  id bigint [pk]
+  type photo_type [not null]
+  target_id bigint
+  owner_id bigint [not null]
+  url varchar(512) [not null]
+  sort_order int [not null]
+  created_at timestamp [not null]
+  deleted_at timestamp
+
+  indexes {
+    target_id [name: 'idx_photos_target_id', type: btree]
+    owner_id [name: 'idx_photos_owner_id', type: btree]
+  }
+}
+
+Table comments {
+  id bigint [pk]
+  target_type comment_target_type [not null]
+  target_id bigint [not null]
+  author_id bigint [not null]
+  text varchar(200) [not null]
+  status moderation_status [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  deleted_at timestamp
+
+  indexes {
+    target_id [name: 'idx_comments_target_id', type: btree]
+    author_id [name: 'idx_comments_author_id', type: btree]
+  }
+}
+
+Table subscriptions {
+  id bigint [pk]
+  follower_id bigint [not null]
+  following_id bigint [not null]
+  created_at timestamp [not null]
+  deleted_at timestamp
+
+  indexes {
+    follower_id [name: 'idx_subscriptions_follower_id', type: btree]
+    following_id [name: 'idx_subscriptions_following_id', type: btree]
+  }
+}
+
+Table excursions {
+  id bigint [pk]
+  place_id bigint [not null]
+  title varchar(128) [not null]
+  description varchar(512) [not null]
+  price numeric(12,2) [not null]
+  currency varchar(3) [not null]
+  rating numeric(2,1) [not null]
+  status moderation_status [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  deleted_at timestamp
+
+  indexes {
+    place_id [name: 'idx_excursions_place_id', type: btree]
+  }
+}
+
+Table excursion_ratings {
+  id bigint [pk]
+  excursion_id bigint [not null]
+  user_id bigint [not null]
+  rating int [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    excursion_id [name: 'idx_excursion_ratings_excursion_id', type: btree]
+    user_id [name: 'idx_excursion_ratings_user_id', type: btree]
+  }
+}
+
+Ref: posts.author_id > travelers.id
+Ref: posts.place_id > places.id
+Ref: photos.owner_id > travelers.id
+Ref: comments.author_id > travelers.id
+Ref: subscriptions.follower_id > travelers.id
+Ref: subscriptions.following_id > travelers.id
+Ref: excursions.place_id > places.id
+Ref: excursion_ratings.excursion_id > excursions.id
+Ref: excursion_ratings.user_id > travelers.id

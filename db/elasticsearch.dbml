@@ -1,0 +1,54 @@
+Project elasticsearch {
+  database_type: 'Elasticsearch'
+  Note: 'Используется как поисковый движок'
+}
+
+Enum search_moderation_status {
+  moderation
+  published
+  rejected
+}
+
+Table post_search_documents {
+  id bigint [pk]
+  author_id bigint [not null]
+  author_name varchar(128) [not null]
+  place_id bigint [not null]
+  place_name varchar(64) [not null]
+  place_country varchar(64) [not null]
+  title varchar(64)
+  description text [not null]
+  status search_moderation_status [not null]
+  photos json
+  search_text text [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table place_search_documents {
+  id bigint [pk]
+  name varchar(64) [not null]
+  country varchar(64) [not null]
+  description text [not null]
+  posts_count bigint [not null]
+  search_text text [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table excursion_search_documents {
+  id bigint [pk]
+  place_id bigint [not null]
+  place_name varchar(64) [not null]
+  place_country varchar(64) [not null]
+  title varchar(128) [not null]
+  description text [not null]
+  price numeric(12,2) [not null]
+  currency varchar(3) [not null]
+  rating numeric(2,1) [not null]
+  status search_moderation_status [not null]
+  photos json
+  search_text text [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
