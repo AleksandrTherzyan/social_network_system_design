@@ -45,7 +45,6 @@ Table posts {
   status moderation_status [not null]
   created_at timestamp [not null]
   updated_at timestamp [not null]
-  deleted_at timestamp
 
   indexes {
     author_id [name: 'idx_posts_author_id', type: btree]
@@ -61,7 +60,6 @@ Table photos {
   url varchar(512) [not null]
   sort_order int [not null]
   created_at timestamp [not null]
-  deleted_at timestamp
 
   indexes {
     target_id [name: 'idx_photos_target_id', type: btree]
@@ -78,7 +76,6 @@ Table comments {
   status moderation_status [not null]
   created_at timestamp [not null]
   updated_at timestamp [not null]
-  deleted_at timestamp
 
   indexes {
     target_id [name: 'idx_comments_target_id', type: btree]
@@ -91,7 +88,6 @@ Table subscriptions {
   follower_id bigint [not null]
   following_id bigint [not null]
   created_at timestamp [not null]
-  deleted_at timestamp
 
   indexes {
     follower_id [name: 'idx_subscriptions_follower_id', type: btree]
@@ -110,7 +106,6 @@ Table excursions {
   status moderation_status [not null]
   created_at timestamp [not null]
   updated_at timestamp [not null]
-  deleted_at timestamp
 
   indexes {
     place_id [name: 'idx_excursions_place_id', type: btree]
