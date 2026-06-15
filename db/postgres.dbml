@@ -9,12 +9,6 @@ Enum moderation_status {
   rejected
 }
 
-Enum photo_type {
-  posts
-  excursions
-  comments
-}
-
 Enum comment_target_type {
   posts
   excursions
@@ -54,16 +48,46 @@ Table posts {
 
 Table photos {
   id bigint [pk]
-  type photo_type [not null]
-  target_id bigint
   owner_id bigint [not null]
   url varchar(512) [not null]
   sort_order int [not null]
   created_at timestamp [not null]
 
   indexes {
-    target_id [name: 'idx_photos_target_id', type: btree]
     owner_id [name: 'idx_photos_owner_id', type: btree]
+  }
+}
+
+Table post_photos {
+  post_id bigint [not null]
+  photo_id bigint [not null]
+
+  indexes {
+    (post_id, photo_id) [pk]
+    post_id [name: 'idx_post_photos_post_id', type: btree]
+    photo_id [name: 'idx_post_photos_photo_id', type: btree]
+  }
+}
+
+Table comment_photos {
+  comment_id bigint [not null]
+  photo_id bigint [not null]
+
+  indexes {
+    (comment_id, photo_id) [pk]
+    comment_id [name: 'idx_comment_photos_comment_id', type: btree]
+    photo_id [name: 'idx_comment_photos_photo_id', type: btree]
+  }
+}
+
+Table excursion_photos {
+  excursion_id bigint [not null]
+  photo_id bigint [not null]
+
+  indexes {
+    (excursion_id, photo_id) [pk]
+    excursion_id [name: 'idx_excursion_photos_excursion_id', type: btree]
+    photo_id [name: 'idx_excursion_photos_photo_id', type: btree]
   }
 }
 
@@ -78,8 +102,28 @@ Table comments {
   updated_at timestamp [not null]
 
   indexes {
-    target_id [name: 'idx_comments_target_id', type: btree]
     author_id [name: 'idx_comments_author_id', type: btree]
+  }
+}
+
+Table post_comments {
+  comment_id bigint [not null]
+  post_id bigint [not null]
+
+  indexes {
+    (comment_id, post_id) [pk]
+    post_id
+  }
+}
+
+Table excursion_comments {
+  comment_id bigint [not null]
+  excursion_id bigint [not null]
+
+  indexes {
+    (comment_id, excursion_id) [pk]
+    excursion_id [name: 'idx_excursion_comments_excursion_id', type: btree]
+    comment_id [name: 'idx_excursion_comments_comment_id', type: btree]
   }
 }
 
@@ -128,10 +172,20 @@ Table excursion_ratings {
 
 Ref: posts.author_id > travelers.id
 Ref: posts.place_id > places.id
-Ref: photos.owner_id > travelers.id
-Ref: comments.author_id > travelers.id
 Ref: subscriptions.follower_id > travelers.id
 Ref: subscriptions.following_id > travelers.id
 Ref: excursions.place_id > places.id
 Ref: excursion_ratings.excursion_id > excursions.id
 Ref: excursion_ratings.user_id > travelers.id
+Ref: photos.owner_id > travelers.id
+Ref: post_photos.post_id > posts.id
+Ref: post_photos.photo_id > photos.id
+Ref: comment_photos.comment_id > comments.id
+Ref: comment_photos.photo_id > photos.id
+Ref: excursion_photos.excursion_id > excursions.id
+Ref: excursion_photos.photo_id > photos.id
+Ref: comments.author_id > travelers.id
+Ref: post_comments.comment_id > comments.id
+Ref: post_comments.post_id > posts.id
+Ref: excursion_comments.comment_id > comments.id
+Ref: excursion_comments.excursion_id > excursions.id
