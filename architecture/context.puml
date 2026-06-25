@@ -1,0 +1,69 @@
+@startuml
+!include <C4/C4_Container>
+
+Person(traveler, "Путешественник", "Пользователь")
+
+System_Boundary(travelSocialNetwork, "Travel Social Network") {
+Container(apiGateway, "API Gateway", "Маршрутизация, аутентификация, балансировка")
+
+Container(postWrite, "Post Write Service", "Сервис создания постов", "Принимает посты с фото, сохраняет в БД и публикует события")
+Container(postRead, "Post Read Service", "Сервис чтения постов и лент", "Отдаёт ленту, посты по местам, кэширует в Redis")
+Container(excursionWrite, "Excursion Write Service", "Сервис управления экскурсиями", "Добавление/редактирование экскурсий")
+Container(excursionRead, "Excursion Read Service", "Сервис просмотра каталога экскурсий", "Поиск и вывод каталога, кэширование")
+Container(subscribe, "Subscribe Service", "Сервис подписок", "Управление подписками, публикация событий")
+Container(reviews, "Reviews Service", "Сервис комментариев и оценок", "Добавление комментариев к постам и экскурсиям, рейтинги")
+
+Container(mediaService, "Media Service", "Сервис обработки фото", "Ресайз, оптимизация, загрузка в S3 и генерация ссылок CDN")
+
+Container(kafka, "Kafka", "Асинхронное обновление read‑моделей (лент, счетчиков)")
+
+ContainerDb(postgres, "PostgreSQL", "Реплицируемая БД (RF=3)", "Хранение постов, комментариев, подписок, экскурсий")
+ContainerDb(elasticsearch, "Elasticsearch", "Поисковый движок (RF=2)", "Индексация постов, мест, экскурсий для полнотекстового поиска")
+ContainerDb(redis, "Redis", "Кэш и read‑модели (Sentinel)", "Ленты, счётчики лайков/комментариев, кэш каталогов")
+Container(s3, "S3‑Minio cluster", "Объектное хранилище", "Хранение статики")
+
+System_Ext(cdn, "CDN", "Доставка фотографий пользователям")
+}
+
+    Rel(traveler, apiGateway, "")
+        Rel(traveler, cdn, "Загрузка фото напрямую", "HTTPS")
+
+        Rel(apiGateway, postWrite, "POST /posts")
+        Rel(apiGateway, postRead, "GET /feed, /posts, /places")
+        Rel(apiGateway, excursionWrite, "POST /excursions")
+        Rel(apiGateway, excursionRead, "GET /excursions")
+        Rel(apiGateway, subscribe, "POST /subscribe, /unsubscribe")
+        Rel(apiGateway, reviews, "POST /comments, /ratings")
+        Rel(apiGateway, mediaService, "POST /upload")
+
+        Rel(postWrite, postgres, "")
+        Rel(postWrite, kafka, "Публикует изменения постов", "Async")
+        Rel(postWrite, mediaService, "Передаёт фото на обработку")
+
+        Rel(postRead, postgres, "")
+        Rel(postRead, redis, "Читает кэшированные ленты")
+        Rel(postRead, elasticsearch, "Поиск по местам")
+
+        Rel(excursionWrite, postgres, "")
+        Rel(excursionWrite, kafka, "Публикует обновления экскурсий", "Async")
+        Rel(excursionWrite, mediaService, "Передаёт фото на обработку")
+
+        Rel(excursionRead, postgres, "")
+        Rel(excursionRead, redis, "Кэш каталога")
+        Rel(excursionRead, elasticsearch, "Поиск экскурсий")
+
+        Rel(subscribe, postgres, "")
+        Rel(subscribe, kafka, "Публикует изменения по подпискам", "Async")
+
+        Rel(reviews, postgres, "")
+        Rel(reviews, kafka, "Публикует изменения по отзывам", "Async")
+        
+        Rel(mediaService, s3, "Сохраняет файлы", "S3 API")
+        Rel(mediaService, cdn, "Возвращает CDN‑ссылку")
+        
+        Rel(kafka, postRead, "Cобытия для обновления лент", "Async")
+        Rel(kafka, excursionRead, "Cобытия для обновления каталога", "Async")
+        Rel(kafka, subscribe, "Cобытия для подписок", "Async")
+        Rel(kafka, reviews, "Cобытия для счётчиков", "Async")
+        
+        @enduml
