@@ -1,0 +1,28 @@
+@startuml
+!include <C4/C4_Container>
+
+Person(traveler, "Путешественник")
+Container(apiGateway, "API Gateway", "Маршрутизация, аутентификация, балансировка")
+ContainerQueue(kafka, "Events Queue", "Kafka", "События изменения постов, подписок и счётчиков")
+System(mediaSystem, "Media", "Обработка и хранение фотографий")
+
+System_Boundary(postsSystem, "Posts & Feed") {
+    Container(postWrite, "Post Write Service", "Создание постов")
+    Container(postRead, "Post Read Service", "Лента, посты по местам")
+    ContainerDb(postsDb, "Posts DB", "PostgreSQL", "Посты и метаданные")
+    ContainerDb(feedCache, "Feed Cache", "Redis", "Ленты и счётчики лайков/комментариев")
+    ContainerDb(postsSearch, "Posts Search", "Elasticsearch", "Индекс постов и мест")
+}
+
+Rel(traveler, apiGateway, "REST")
+Rel(apiGateway, postWrite, "POST /posts", "REST")
+Rel(apiGateway, postRead, "GET /feed, /posts, /places", "REST")
+
+Rel(postWrite, postsDb, "Сохраняет посты")
+Rel(postWrite, mediaSystem, "Отправляет фото на обработку")
+Rel(postWrite, kafka, "Публикует события постов", "Async")
+
+Rel(postRead, feedCache, "Читает ленты и счётчики")
+Rel(postRead, postsSearch, "Поиск по местам")
+Rel(kafka, postRead, "Обновление лент и счётчиков", "Async")
+@enduml

@@ -1,0 +1,23 @@
+@startuml
+!include <C4/C4_Container>
+
+Person(traveler, "Путешественник")
+Container(apiGateway, "API Gateway", "Маршрутизация, аутентификация, балансировка")
+System(postsSystem, "Posts & Feed", "Публикация постов")
+System(excursionsSystem, "Excursions", "Каталог экскурсий")
+System_Ext(cdn, "CDN", "Доставка фотографий пользователям")
+
+System_Boundary(mediaSystem, "Media") {
+    Container(mediaService, "Media Service", "Ресайз, оптимизация, загрузка и генерация ссылок")
+    ContainerDb(objectStorage, "Object Storage", "S3 / MinIO", "Хранение статики и обработанных фото")
+}
+
+Rel(traveler, apiGateway, "REST")
+Rel(apiGateway, mediaService, "POST /upload", "REST")
+Rel(postsSystem, mediaService, "Отправляет фото постов на обработку")
+Rel(excursionsSystem, mediaService, "Отправляет фото экскурсий на обработку")
+
+Rel(mediaService, objectStorage, "Сохраняет файлы", "S3 API")
+Rel(mediaService, cdn, "Возвращает CDN-ссылку")
+Rel(traveler, cdn, "Загружает фото напрямую", "HTTPS")
+@enduml

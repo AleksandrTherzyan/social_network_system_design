@@ -1,0 +1,23 @@
+@startuml
+!include <C4/C4_Container>
+
+Person(traveler, "Путешественник")
+Container(apiGateway, "API Gateway", "Маршрутизация, аутентификация, балансировка")
+ContainerQueue(kafka, "Events Queue", "Kafka", "События подписок и отзывов")
+
+System_Boundary(socialSystem, "Social") {
+    Container(subscribe, "Subscribe Service", "Управление подписками")
+    Container(reviews, "Reviews Service", "Комментарии и оценки")
+    ContainerDb(socialDb, "Social DB", "PostgreSQL", "Подписки, комментарии, рейтинги")
+}
+
+Rel(traveler, apiGateway, "REST")
+Rel(apiGateway, subscribe, "POST /subscribe, /unsubscribe", "REST")
+Rel(apiGateway, reviews, "POST /comments, /ratings", "REST")
+
+Rel(subscribe, socialDb, "Сохраняет подписки")
+Rel(subscribe, kafka, "Публикует события подписок", "Async")
+
+Rel(reviews, socialDb, "Сохраняет комментарии и оценки")
+Rel(reviews, kafka, "Публикует события отзывов и счётчиков", "Async")
+@enduml
