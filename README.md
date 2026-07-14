@@ -44,9 +44,27 @@
 
 Пиковую нагрузку будем считать `x5` от средней
 
-## System Context
+## Architecture (C4 model)
+
+### Level 1. System context diagram
 
 <img src="images/context.svg" />
+
+### Level 2. Posts & Feed container diagram
+
+<img src="images/containers/posts_system.svg" />
+
+### Level 2. Excursions container diagram
+
+<img src="images/containers/excursions_system.svg" />
+
+### Level 2. Social container diagram
+
+<img src="images/containers/social_system.svg" />
+
+### Level 2. Media container diagram
+
+<img src="images/containers/media_system.svg" />
 
 ## Расчет нагрузки
 

@@ -1,20 +1,20 @@
-@startuml
+@startuml excursions_system
 !include <C4/C4_Container>
 
-Person(traveler, "Путешественник")
-Container(apiGateway, "API Gateway", "Маршрутизация, аутентификация, балансировка")
-ContainerQueue(kafka, "Events Queue", "Kafka", "События изменения экскурсий")
-System(mediaSystem, "Media", "Обработка и хранение фотографий")
+Person(traveler, "Путешественник", "Создаёт, ищет и просматривает экскурсии")
+Container(apiGateway, "API Gateway", "", "Единая точка входа: маршрутизация, аутентификация, rate limiting, балансировка")
+ContainerQueue(kafka, "Events Queue", "Kafka", "Шина событий: изменения каталога экскурсий для обновления read-моделей")
+System(mediaSystem, "Media", "Обрабатывает и хранит фотографии, возвращает CDN-ссылки")
 
 System_Boundary(excursionsSystem, "Excursions") {
-    Container(excursionWrite, "Excursion Write Service", "Создание и редактирование экскурсий")
-    Container(excursionRead, "Excursion Read Service", "Просмотр и поиск по каталогу")
-    ContainerDb(excursionsDb, "Excursions DB", "PostgreSQL", "Экскурсии и метаданные")
-    ContainerDb(catalogCache, "Catalog Cache", "Redis", "Кэш каталога")
-    ContainerDb(excursionsSearch, "Excursions Search", "Elasticsearch", "Индекс экскурсий")
+    Container(excursionWrite, "Excursion Write Service", "", "Создание и редактирование карточек экскурсий, сохраняет в БД и публикует события об изменениях каталога")
+    Container(excursionRead, "Excursion Read Service", "", "Поиск и просмотр каталога по направлениям с рейтингом; читает из кэша и поискового индекса")
+    ContainerDb(excursionsDb, "Excursions DB", "PostgreSQL", "Мастер-хранилище экскурсий и метаданных каталога")
+    ContainerDb(catalogCache, "Catalog Cache", "Redis", "Кэш горячих карточек и выборок каталога")
+    ContainerDb(excursionsSearch, "Excursions Search", "Elasticsearch", "Индекс экскурсий для поиска по направлениям и фильтрам")
 }
 
-Rel(traveler, apiGateway, "REST")
+Rel(traveler, apiGateway, "Работа с каталогом экскурсий", "REST/HTTPS")
 Rel(apiGateway, excursionWrite, "POST /excursions", "REST")
 Rel(apiGateway, excursionRead, "GET /excursions", "REST")
 
@@ -24,5 +24,5 @@ Rel(excursionWrite, kafka, "Публикует события экскурсий
 
 Rel(excursionRead, catalogCache, "Читает кэш каталога")
 Rel(excursionRead, excursionsSearch, "Поиск экскурсий")
-Rel(kafka, excursionRead, "Обновление каталога", "Async")
+Rel(kafka, excursionRead, "События для обновления каталога", "Async")
 @enduml

@@ -1,21 +1,21 @@
-@startuml
+@startuml media_system
 !include <C4/C4_Container>
 
-Person(traveler, "Путешественник")
-Container(apiGateway, "API Gateway", "Маршрутизация, аутентификация, балансировка")
-System(postsSystem, "Posts & Feed", "Публикация постов")
-System(excursionsSystem, "Excursions", "Каталог экскурсий")
-System_Ext(cdn, "CDN", "Доставка фотографий пользователям")
+Person(traveler, "Путешественник", "Загружает фото и просматривает их через CDN")
+Container(apiGateway, "API Gateway", "", "Единая точка входа: маршрутизация, аутентификация, rate limiting, балансировка")
+System(postsSystem, "Posts & Feed", "Публикует посты с фотографиями")
+System(excursionsSystem, "Excursions", "Ведёт каталог экскурсий с фотографиями")
+System_Ext(cdn, "CDN", "Доставляет фотографии пользователям с граничных узлов")
 
 System_Boundary(mediaSystem, "Media") {
-    Container(mediaService, "Media Service", "Ресайз, оптимизация, загрузка и генерация ссылок")
-    ContainerDb(objectStorage, "Object Storage", "S3 / MinIO", "Хранение статики и обработанных фото")
+    Container(mediaService, "Media Service", "", "Ресайз и оптимизация загруженных фото, заливка в объектное хранилище и генерация ссылок для доставки через CDN")
+    ContainerDb(objectStorage, "Object Storage", "S3 / MinIO", "Объектное хранилище исходников и обработанных изображений")
 }
 
-Rel(traveler, apiGateway, "REST")
+Rel(traveler, apiGateway, "Загрузка фото", "REST/HTTPS")
 Rel(apiGateway, mediaService, "POST /upload", "REST")
-Rel(postsSystem, mediaService, "Отправляет фото постов на обработку")
-Rel(excursionsSystem, mediaService, "Отправляет фото экскурсий на обработку")
+Rel(postsSystem, mediaService, "Фото постов на обработку")
+Rel(excursionsSystem, mediaService, "Фото экскурсий на обработку")
 
 Rel(mediaService, objectStorage, "Сохраняет файлы", "S3 API")
 Rel(mediaService, cdn, "Возвращает CDN-ссылку")

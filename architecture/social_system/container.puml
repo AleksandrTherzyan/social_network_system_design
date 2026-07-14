@@ -1,17 +1,17 @@
-@startuml
+@startuml social_system
 !include <C4/C4_Container>
 
-Person(traveler, "Путешественник")
-Container(apiGateway, "API Gateway", "Маршрутизация, аутентификация, балансировка")
-ContainerQueue(kafka, "Events Queue", "Kafka", "События подписок и отзывов")
+Person(traveler, "Путешественник", "Подписывается, комментирует и ставит оценки")
+Container(apiGateway, "API Gateway", "", "Единая точка входа: маршрутизация, аутентификация, rate limiting, балансировка")
+ContainerQueue(kafka, "Events Queue", "Kafka", "Шина событий: подписки, комментарии и оценки для пересчёта лент и счётчиков")
 
 System_Boundary(socialSystem, "Social") {
-    Container(subscribe, "Subscribe Service", "Управление подписками")
-    Container(reviews, "Reviews Service", "Комментарии и оценки")
-    ContainerDb(socialDb, "Social DB", "PostgreSQL", "Подписки, комментарии, рейтинги")
+    Container(subscribe, "Subscribe Service", "", "Управление подписками/отписками между путешественниками; публикует события для перестроения лент")
+    Container(reviews, "Reviews Service", "", "Комментарии и оценки постов и экскурсий; публикует события для пересчёта счётчиков и рейтингов")
+    ContainerDb(socialDb, "Social DB", "PostgreSQL", "Хранилище графа подписок, комментариев и рейтингов")
 }
 
-Rel(traveler, apiGateway, "REST")
+Rel(traveler, apiGateway, "Подписки, комментарии, оценки", "REST/HTTPS")
 Rel(apiGateway, subscribe, "POST /subscribe, /unsubscribe", "REST")
 Rel(apiGateway, reviews, "POST /comments, /ratings", "REST")
 

@@ -1,4 +1,4 @@
-@startuml
+@startuml context
 !include <C4/C4_Context>
 
 Person(traveler, "Путешественник", "Пользователь соцсети о путешествиях")
