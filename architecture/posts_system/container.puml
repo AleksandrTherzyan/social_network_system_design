@@ -1,0 +1,28 @@
+@startuml posts_system
+!include <C4/C4_Container>
+
+Person(traveler, "Путешественник", "Публикует посты и читает ленту")
+Container(apiGateway, "API Gateway", "", "Единая точка входа: маршрутизация, аутентификация, rate limiting, балансировка")
+ContainerQueue(kafka, "Events Queue", "Kafka", "Шина событий: изменения постов, подписок и счётчиков для обновления read-моделей")
+System(mediaSystem, "Media", "Обрабатывает и хранит фотографии, возвращает CDN-ссылки")
+
+System_Boundary(postsSystem, "Posts & Feed") {
+    Container(postWrite, "Post Write Service", "", "Принимает посты с фото и привязкой к месту, валидирует, сохраняет в Posts DB и публикует события об изменениях")
+    Container(postRead, "Post Read Service", "", "Отдаёт персональную ленту по подпискам (обратный хронологический порядок) и посты по местам; читает из read-моделей")
+    ContainerDb(postsDb, "Posts DB", "PostgreSQL", "Мастер-хранилище постов, метаданных и привязок к местам")
+    ContainerDb(feedCache, "Feed Cache", "Redis", "Предрассчитанные ленты пользователей и счётчики лайков/комментариев")
+    ContainerDb(postsSearch, "Posts Search", "Elasticsearch", "Полнотекстовый индекс постов и мест для поиска популярных мест")
+}
+
+Rel(traveler, apiGateway, "Работа с постами и лентой", "REST/HTTPS")
+Rel(apiGateway, postWrite, "POST /posts", "REST")
+Rel(apiGateway, postRead, "GET /feed, /posts, /places", "REST")
+
+Rel(postWrite, postsDb, "Сохраняет посты")
+Rel(postWrite, mediaSystem, "Отправляет фото на обработку")
+Rel(postWrite, kafka, "Публикует события постов", "Async")
+
+Rel(postRead, feedCache, "Читает ленты и счётчики")
+Rel(postRead, postsSearch, "Поиск по местам")
+Rel(kafka, postRead, "События для обновления лент и счётчиков", "Async")
+@enduml

@@ -1,0 +1,19 @@
+@startuml context
+!include <C4/C4_Context>
+
+Person(traveler, "Путешественник", "Пользователь соцсети о путешествиях")
+
+System(postsSystem, "Posts & Feed", "Публикация постов с фото и лента путешествий")
+System(excursionsSystem, "Excursions", "Каталог экскурсий: создание, поиск и просмотр")
+System(socialSystem, "Social", "Подписки, комментарии и оценки")
+System(mediaSystem, "Media", "Загрузка, обработка и доставка фотографий")
+
+Rel(traveler, postsSystem, "Публикует посты, читает ленту")
+Rel(traveler, excursionsSystem, "Создаёт и ищет экскурсии")
+Rel(traveler, socialSystem, "Подписывается, комментирует, ставит оценки")
+Rel(traveler, mediaSystem, "Загружает и просматривает фото")
+
+Rel(postsSystem, mediaSystem, "Обработка фото постов")
+Rel(excursionsSystem, mediaSystem, "Обработка фото экскурсий")
+Rel(socialSystem, postsSystem, "События подписок и счётчиков для ленты", "Async")
+@enduml
